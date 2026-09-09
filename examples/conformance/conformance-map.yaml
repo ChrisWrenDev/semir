@@ -1,0 +1,33 @@
+# Conformance mapping: semantic assertions → implementation evidence
+
+mappings:
+  - assertionId: sem://reservation/assertion/pay-causes-payment-accepted
+    symbols:
+      - reservation.state = "paid"
+    tests:
+      - paid reservation never expires
+
+  - assertionId: sem://reservation/assertion/pay-authorized-by-owner
+    symbols:
+      - reservation.ownerId !== payerId
+    tests:
+      - only owner may pay
+
+  - assertionId: sem://reservation/assertion/paid-reservations-do-not-expire
+    symbols:
+      - paid_cannot_expire
+      - reservation.state === "paid"
+    tests:
+      - paid reservation never expires
+
+  - assertionId: sem://reservation/assertion/pay-requires-active
+    symbols:
+      - reservation.state !== "active"
+    tests:
+      - paid reservation never expires
+
+  - assertionId: sem://reservation/assertion/expire-causes-reservation-expired
+    symbols:
+      - reservation.state = "expired"
+    tests:
+      - unpaid active reservation can expire
