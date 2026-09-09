@@ -142,3 +142,25 @@ But one experiment is not enough to decide. The hypothesis stands:
 | Domain-specific projection rules | 0 |
 
 **Composition works with existing primitives.** The kernel handles cross-domain relationships without modification. The architecture scales from single domains to composed systems.
+
+## Validated properties
+
+The following are now validated across three experiments (MVP, rate limiter, composition):
+
+| Property | Evidence |
+|---|---|
+| Shared assertion identity drives multiple projections | MVP: one model → Mermaid, Gherkin, TLA+ |
+| Structural kernel transfers across domains | Rate limiter: 58% clean predicate transfer |
+| Cross-domain composition preserves identity and locality | Composition: 6 cross-boundary assertions, zero new primitives |
+| Pattern-driven projections contain zero domain knowledge | All three experiments: rename test passes |
+| Contradictions are represented explicitly | All three experiments: conflicting assertions coexist |
+| Slicing isolates relevant semantics | All three experiments: explain shows dependencies only |
+
+## Still unresolved
+
+| Gap | Observed in | Hypothesis |
+|---|---|---|
+| Instance/binding semantics | Rate limiter, composition | May require constraint layer |
+| Continuous quantitative state | Rate limiter | Belongs in specialist extension |
+| Concurrency/atomicity | Rate limiter | Belongs in specialist extension |
+| Operational semantics | Rate limiter | Belongs in specialist extension |

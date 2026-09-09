@@ -1,0 +1,229 @@
+version: "0.1"
+
+name: Instance Semantics
+description: Testing whether SEMIR can represent instance identity, bindings, and relational semantics
+
+objects:
+  # === Domain entities ===
+  - id: sem://instance/entity/reservation
+    kind: entity
+    name: Reservation
+
+  - id: sem://instance/entity/payment-intent
+    kind: entity
+    name: PaymentIntent
+
+  - id: sem://instance/entity/charge
+    kind: entity
+    name: Charge
+
+  - id: sem://instance/actor/owner
+    kind: actor
+    name: ReservationOwner
+
+  - id: sem://instance/actor/payer
+    kind: actor
+    name: Payer
+
+  # === States ===
+  - id: sem://instance/state/active
+    kind: state
+    name: Active
+
+  - id: sem://instance/state/paid
+    kind: state
+    name: Paid
+
+  - id: sem://instance/state/charged
+    kind: state
+    name: Charged
+
+  - id: sem://instance/state/duplicate-blocked
+    kind: state
+    name: DuplicateBlocked
+
+  # === Actions ===
+  - id: sem://instance/action/pay-reservation
+    kind: action
+    name: PayReservation
+
+  - id: sem://instance/action/attempt-charge
+    kind: action
+    name: AttemptCharge
+
+  - id: sem://instance/action/block-duplicate
+    kind: action
+    name: BlockDuplicate
+
+  # === Events ===
+  - id: sem://instance/event/payment-accepted
+    kind: event
+    name: PaymentAccepted
+
+  - id: sem://instance/event/charge-created
+    kind: event
+    name: ChargeCreated
+
+  - id: sem://instance/event/duplicate-blocked
+    kind: event
+    name: DuplicateBlockedEvent
+
+assertions:
+  # ================================================================
+  # TEST CASE A: Payment idempotency
+  # "Two attempts with the same PaymentIntent must cause at most
+  #  one successful charge."
+  #
+  # TYPE LEVEL (what we can express):
+  # ================================================================
+
+  - id: sem://instance/assertion/attempt-causes-charge
+    subject: sem://instance/action/attempt-charge
+    predicate: causes
+    object: sem://instance/event/charge-created
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://instance/assertion/charge-transitions-to-charged
+    subject: sem://instance/event/charge-created
+    predicate: transitions_to
+    object: sem://instance/state/charged
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://instance/assertion/attempt-requires-active-intent
+    subject: sem://instance/action/attempt-charge
+    predicate: requires
+    object: sem://instance/state/active
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # TYPE LEVEL: duplicate prevention
+  - id: sem://instance/assertion/block-duplicates
+    subject: sem://instance/action/block-duplicate
+    predicate: forbids
+    object: sem://instance/event/charge-created
+    kind: invariant
+    epistemicStatus: validated
+    confidence: 1.0
+    conditions:
+      - subject: sem://instance/entity/payment-intent
+        predicate: holds_when
+        object: sem://instance/state/charged
+
+  - id: sem://instance/assertion/block-causes-blocked
+    subject: sem://instance/action/block-duplicate
+    predicate: causes
+    object: sem://instance/event/duplicate-blocked
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://instance/assertion/duplicate-blocked-transitions
+    subject: sem://instance/event/duplicate-blocked
+    predicate: transitions_to
+    object: sem://instance/state/duplicate-blocked
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # ================================================================
+  # INSTANCE LEVEL (what we CANNOT express naturally):
+  #
+  # "For the same payment intent P:
+  #  count(Charge where intent == P) <= 1"
+  #
+  # Required: variable binding (P), equality (intent == P),
+  #           quantification (count <= 1)
+  # ================================================================
+
+  # ================================================================
+  # TEST CASE B: Rate-limit ownership
+  # "A request consumes tokens only from the bucket associated
+  #  with its client."
+  #
+  # TYPE LEVEL:
+  # ================================================================
+
+  - id: sem://instance/assertion/pay-requires-owner
+    subject: sem://instance/action/pay-reservation
+    predicate: requires
+    object: sem://instance/state/active
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://instance/assertion/pay-authorized-by-owner
+    subject: sem://instance/action/pay-reservation
+    predicate: authorized_by
+    object: sem://instance/actor/owner
+    kind: security
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://instance/assertion/pay-causes-payment-accepted
+    subject: sem://instance/action/pay-reservation
+    predicate: causes
+    object: sem://instance/event/payment-accepted
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://instance/assertion/payment-accepted-transitions-to-paid
+    subject: sem://instance/event/payment-accepted
+    predicate: transitions_to
+    object: sem://instance/state/paid
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # ================================================================
+  # INSTANCE LEVEL (what we CANNOT express naturally):
+  #
+  # "request.client == reservation.owner"
+  #
+  # Required: cross-object equality, instance binding
+  # ================================================================
+
+  # ================================================================
+  # TEST CASE C: Reservation ownership
+  # "The actor authorizing PayReservation must be the owner
+  #  of that specific reservation."
+  #
+  # TYPE LEVEL:
+  # ================================================================
+
+  - id: sem://instance/assertion/pay-writes-reservation
+    subject: sem://instance/action/pay-reservation
+    predicate: writes
+    object: sem://instance/entity/reservation
+    kind: fact
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # ================================================================
+  # INSTANCE LEVEL (partially expressible via conditions):
+  #
+  # "actor == reservation.owner"
+  #
+  # Can express: "PayReservation authorized_by ReservationOwner"
+  #              + condition "Reservation holds_when Active"
+  # Cannot express: "the specific actor IS the owner of the
+  #                  specific reservation being paid"
+  # ================================================================
+
+  # Condition attempt: tie authorization to reservation state
+  - id: sem://instance/assertion/owner-must-hold-active
+    subject: sem://instance/action/pay-reservation
+    predicate: authorized_by
+    object: sem://instance/actor/owner
+    kind: security
+    epistemicStatus: validated
+    confidence: 1.0
+    conditions:
+      - subject: sem://instance/entity/reservation
+        predicate: holds_when
+        object: sem://instance/state/active
