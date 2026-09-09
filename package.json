@@ -1,0 +1,27 @@
+{
+  "name": "semir",
+  "version": "0.1.0",
+  "description": "Semantic System Intermediate Representation",
+  "type": "module",
+  "bin": {
+    "semir": "./bin/semir"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "tsc --noEmit",
+    "semir": "node --import tsx src/cli.ts"
+  },
+  "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
+    "@types/node": "^26.5.0",
+    "tsx": "^4.23.0",
+    "typescript": "^5.5.0",
+    "vitest": "^2.0.0"
+  },
+  "dependencies": {
+    "js-yaml": "^5.4.1"
+  }
+}
