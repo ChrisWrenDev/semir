@@ -1,3 +1,5 @@
+import { Constraint } from "./constraint.ts";
+
 export type Predicate =
   | "causes"
   | "requires"
@@ -69,6 +71,7 @@ export interface Assertion {
   predicate: Predicate;
   object?: AssertionTarget;
   conditions?: Condition[];
+  constraint?: Constraint;
   kind: AssertionKind;
   evidence?: Evidence[];
   epistemicStatus?: EpistemicStatus;

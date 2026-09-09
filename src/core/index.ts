@@ -24,3 +24,25 @@ export {
 } from "./query.ts";
 export { SliceOptions, SemanticSlice, slice } from "./slice.ts";
 export { ValidationError, ValidationResult, validateModel } from "./validation.ts";
+export {
+  Binding,
+  ConstraintExpr,
+  Constraint,
+  varRef,
+  propRef,
+  lit,
+  eq,
+  neq,
+  lt,
+  lte,
+  gt,
+  gte,
+  and,
+  or,
+  not,
+  forall,
+  exists,
+  atMost,
+  atLeast,
+  renderConstraintExpr,
+} from "./constraint.ts";
