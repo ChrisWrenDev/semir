@@ -1,0 +1,240 @@
+version: "0.1"
+
+name: API Rate Limiter
+description: Token bucket rate limiter — adversarial second-domain experiment
+
+objects:
+  # Entities
+  - id: sem://ratelimit/entity/client
+    kind: entity
+    name: Client
+
+  - id: sem://ratelimit/entity/request
+    kind: entity
+    name: Request
+
+  - id: sem://ratelimit/entity/token-bucket
+    kind: entity
+    name: TokenBucket
+
+  # States
+  - id: sem://ratelimit/state/bucket-ready
+    kind: state
+    name: BucketReady
+
+  - id: sem://ratelimit/state/bucket-empty
+    kind: state
+    name: BucketEmpty
+
+  - id: sem://ratelimit/state/request-allowed
+    kind: state
+    name: RequestAllowed
+
+  - id: sem://ratelimit/state/request-rejected
+    kind: state
+    name: RequestRejected
+
+  # Actions
+  - id: sem://ratelimit/action/allow-request
+    kind: action
+    name: AllowRequest
+
+  - id: sem://ratelimit/action/reject-request
+    kind: action
+    name: RejectRequest
+
+  - id: sem://ratelimit/action/refill-tokens
+    kind: action
+    name: RefillTokens
+
+  - id: sem://ratelimit/action/reset-bucket
+    kind: action
+    name: ResetBucket
+
+  # Events
+  - id: sem://ratelimit/event/request-allowed
+    kind: event
+    name: RequestAllowedEvent
+
+  - id: sem://ratelimit/event/request-rejected
+    kind: event
+    name: RequestRejectedEvent
+
+  - id: sem://ratelimit/event/tokens-refilled
+    kind: event
+    name: TokensRefilledEvent
+
+  - id: sem://ratelimit/event/bucket-reset
+    kind: event
+    name: BucketResetEvent
+
+assertions:
+  # === Lifecycle: allow request ===
+  - id: sem://ratelimit/assertion/allow-requires-ready
+    subject: sem://ratelimit/action/allow-request
+    predicate: requires
+    object: sem://ratelimit/state/bucket-ready
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/allow-causes-allowed
+    subject: sem://ratelimit/action/allow-request
+    predicate: causes
+    object: sem://ratelimit/event/request-allowed
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/allowed-transitions-to-allowed
+    subject: sem://ratelimit/event/request-allowed
+    predicate: transitions_to
+    object: sem://ratelimit/state/request-allowed
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # === Lifecycle: reject request ===
+  - id: sem://ratelimit/assertion/reject-requires-empty
+    subject: sem://ratelimit/action/reject-request
+    predicate: requires
+    object: sem://ratelimit/state/bucket-empty
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/reject-causes-rejected
+    subject: sem://ratelimit/action/reject-request
+    predicate: causes
+    object: sem://ratelimit/event/request-rejected
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/rejected-transitions-to-rejected
+    subject: sem://ratelimit/event/request-rejected
+    predicate: transitions_to
+    object: sem://ratelimit/state/request-rejected
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # === Lifecycle: refill ===
+  - id: sem://ratelimit/assertion/refill-causes-refilled
+    subject: sem://ratelimit/action/refill-tokens
+    predicate: causes
+    object: sem://ratelimit/event/tokens-refilled
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/refilled-transitions-to-ready
+    subject: sem://ratelimit/event/tokens-refilled
+    predicate: transitions_to
+    object: sem://ratelimit/state/bucket-ready
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # === Lifecycle: reset ===
+  - id: sem://ratelimit/assertion/reset-causes-bucket-reset
+    subject: sem://ratelimit/action/reset-bucket
+    predicate: causes
+    object: sem://ratelimit/event/bucket-reset
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/bucket-reset-transitions-to-ready
+    subject: sem://ratelimit/event/bucket-reset
+    predicate: transitions_to
+    object: sem://ratelimit/state/bucket-ready
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # === Invariant: tokens never negative ===
+  - id: sem://ratelimit/assertion/bucket-empty-forbids-request-allowed
+    subject: sem://ratelimit/state/bucket-empty
+    predicate: forbids
+    object: sem://ratelimit/state/request-allowed
+    kind: invariant
+    epistemicStatus: validated
+    confidence: 1.0
+    evidence:
+      - type: test
+        source: TokenBucketInvariantTest
+        stance: supports
+
+  # === Security: client authorization ===
+  - id: sem://ratelimit/assertion/allow-authorized-by-client
+    subject: sem://ratelimit/action/allow-request
+    predicate: authorized_by
+    object: sem://ratelimit/entity/client
+    kind: security
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # === Failure: idempotent refill ===
+  - id: sem://ratelimit/assertion/refill-forbids-double-count
+    subject: sem://ratelimit/action/refill-tokens
+    predicate: forbids
+    object: sem://ratelimit/event/tokens-refilled
+    kind: failure
+    epistemicStatus: validated
+    confidence: 0.95
+    conditions:
+      - subject: sem://ratelimit/action/refill-tokens
+        predicate: occurs_after
+        object: sem://ratelimit/event/tokens-refilled
+    evidence:
+      - type: test
+        source: RefillIdempotencyTest
+        stance: supports
+
+  # === Temporal: refill timing ===
+  - id: sem://ratelimit/assertion/refill-observable-within-1s
+    subject: sem://ratelimit/event/tokens-refilled
+    predicate: observable_within
+    object:
+      literal: "1s"
+      datatype: duration
+    kind: temporal
+    epistemicStatus: asserted
+    confidence: 0.8
+    evidence:
+      - type: documentation
+        source: SLA requirements
+        stance: supports
+
+  # === Quantitative: decision latency ===
+  - id: sem://ratelimit/assertion/decision-latency-p99
+    subject: sem://ratelimit/action/allow-request
+    predicate: observable_within
+    object:
+      literal: "2ms"
+      datatype: duration
+    kind: quantitative
+    epistemicStatus: asserted
+    confidence: 0.9
+    evidence:
+      - type: documentation
+        source: Performance requirements
+        stance: supports
+
+  # === Writes ===
+  - id: sem://ratelimit/assertion/allow-writes-bucket
+    subject: sem://ratelimit/action/allow-request
+    predicate: writes
+    object: sem://ratelimit/entity/token-bucket
+    kind: fact
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/refill-writes-bucket
+    subject: sem://ratelimit/action/refill-tokens
+    predicate: writes
+    object: sem://ratelimit/entity/token-bucket
+    kind: fact
+    epistemicStatus: validated
+    confidence: 1.0

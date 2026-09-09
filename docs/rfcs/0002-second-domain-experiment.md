@@ -1,6 +1,6 @@
 # RFC 0002: Second-Domain Experiment — API Rate Limiter
 
-**Status:** Proposed  
+**Status:** Complete  
 **Target:** SEMIR kernel validation  
 **Last updated:** 2026-09-09  
 **Depends on:** RFC 0001, findings/0001-mvp-validation
@@ -123,21 +123,25 @@ Do NOT model the rate limiter as a workflow. The point is not to find states and
 
 ## 5. Pressure ledger
 
-Record findings in this format:
-
 | Semantic pressure | Result | Notes |
 |---|---|---|
-| `requires` expresses token availability | works / awkward / fails | |
-| `causes` expresses request rejection | works / awkward / fails | |
-| `forbids` expresses negative token count | works / awkward / fails | |
-| Refill timing | works / awkward / fails | |
-| Atomic decrement | works / awkward / fails | |
-| Token-bucket algorithm identity | works / awkward / fails | |
-| p99 latency | works / awkward / fails | |
-| Fairness across clients | works / awkward / fails | |
-| Restart behavior | works / awkward / fails | |
+| `requires` expresses token availability | works | AllowRequest requires BucketReady — same pattern as reservation |
+| `causes` expresses request rejection | works | RejectRequest causes RequestRejectedEvent — lifecycle pattern identical |
+| `forbids` expresses negative token count | works | BucketEmpty forbids RequestAllowed — invariant pattern identical |
+| `authorized_by` expresses client ownership | works | AllowRequest authorized_by Client — security pattern identical |
+| `observable_within` expresses temporal constraint | works | RefillTokens observable_within 1s — literal type handles duration |
+| `exactly_once` expresses idempotent refill | works | Conditional forbids pattern — same as payment retry |
+| `writes` expresses data flow | works | AllowRequest writes TokenBucket — fact pattern identical |
+| p99 latency | awkward | Rendered as `observable_within 2ms` — syntactically valid but semantically imprecise. `observable_within` means observability window, not statistical latency. Predicate name misrepresents meaning. |
+| Token-bucket algorithm identity | awkward | No way to express "uses token bucket algorithm." Model describes behavior without naming the algorithm. Two algorithms produce identical models. Property vs. mechanism distinction unsupported. |
+| `AllowRequest requires BucketReady` in TLA+ | awkward | Lowering shows `reservationState \in {StateType}` instead of restricting to BucketReady. Lowering quality issue. |
+| Refill idempotency property name | awkward | `TokensRefilledEventTokensRefilledEventForbids` doubled name. Naming convention fix needed. |
+| Continuous quantitative state (token count) | fails | Cannot express "availableTokens is integer 0..100." No concept of value domain or ranged variable. |
+| Concurrency / atomic decrement | fails | Cannot express "two requests must not both consume final token." No atomicity or mutual exclusion. |
+| Fairness across clients | fails | Cannot express "each client has own bucket" or "one client cannot consume another's allocation." No instance-level relationships. |
+| Restart behavior | fails | Cannot express "restart must not unexpectedly reset limits." No operational vs. semantic state distinction. |
 
-Add rows as pressure points are discovered. The awkward and fails entries are the primary output of this experiment.
+The awkward and fails entries are the primary output of this experiment.
 
 ## 6. Success criteria
 
