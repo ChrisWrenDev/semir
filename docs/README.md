@@ -14,6 +14,7 @@ SEMIR is intended to represent **what an implementation must preserve** rather t
 | [`adr/0001-assertions-as-semantic-unit.md`](adr/0001-assertions-as-semantic-unit.md) | Why semantic assertions are the fundamental unit of the model | Proposed |
 | [`adr/0002-projection-specific-ir.md`](adr/0002-projection-specific-ir.md) | Why projections lower through projection-specific intermediate representations | Proposed |
 | [`adr/0003-storage-and-serialization-neutrality.md`](adr/0003-storage-and-serialization-neutrality.md) | Why the semantic model is independent of storage and surface syntax | Proposed |
+| [`rfcs/0002-second-domain-experiment.md`](rfcs/0002-second-domain-experiment.md) | Adversarial second-domain experiment to test kernel domain-independence | Proposed |
 | [`findings/0001-mvp-validation.md`](findings/0001-mvp-validation.md) | What the MVP implementation revealed — evidence, not decisions | Complete |
 
 ## Recommended reading order

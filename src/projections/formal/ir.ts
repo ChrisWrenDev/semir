@@ -29,5 +29,6 @@ export interface FormalIR {
   actions: TLAAction[];
   properties: TLAProperty[];
   constraints: TLAConstraint[];
+  hasTemporal: boolean;
   unsupported: Array<{ assertionId: string; reason: string }>;
 }

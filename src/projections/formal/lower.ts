@@ -6,6 +6,7 @@ import { ProjectionCapabilities, ProjectionDiagnostics } from "../../core/predic
 export const FORMAL_CAPABILITIES: ProjectionCapabilities = {
   predicates: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within"],
   assertionKinds: ["invariant", "temporal", "precondition", "postcondition", "security"],
+  requiredRelationships: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within"],
 };
 
 const SUPPORTED_PREDICATES = new Set<string>(FORMAL_CAPABILITIES.predicates);
@@ -140,12 +141,16 @@ export function lower(slice: SemanticSlice): FormalIR {
     }
   }
 
+  const constraints = buildConstraints(slice, assertions);
+  const hasTemporal = constraints.length > 0;
+
   return {
     module: "Reservation",
     states: buildStates(slice),
     actions: buildActions(slice, assertions),
     properties: buildProperties(slice, assertions),
-    constraints: buildConstraints(slice, assertions),
+    constraints,
+    hasTemporal,
     unsupported,
   };
 }

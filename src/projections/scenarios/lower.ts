@@ -7,6 +7,7 @@ import { ProjectionCapabilities, ProjectionDiagnostics } from "../../core/predic
 export const SCENARIO_CAPABILITIES: ProjectionCapabilities = {
   predicates: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within", "exactly_once", "writes"],
   assertionKinds: ["fact", "precondition", "postcondition", "invariant", "temporal", "security", "failure"],
+  requiredRelationships: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within", "exactly_once", "writes"],
 };
 
 const SUPPORTED_PREDICATES = new Set<string>(SCENARIO_CAPABILITIES.predicates);

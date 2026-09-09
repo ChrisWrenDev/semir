@@ -11,6 +11,7 @@ export { SemanticModel, createModel, getModelObject, getModelAssertion } from ".
 export {
   ProjectionCapabilities,
   ProjectionDiagnostics,
+  unionRelationships,
 } from "./predicates.ts";
 export {
   assertions,

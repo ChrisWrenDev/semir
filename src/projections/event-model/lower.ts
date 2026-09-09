@@ -6,6 +6,7 @@ import { EventModelIR, CommandNode, EventNode, StateNode, Edge, EdgeKind } from 
 export const EVENT_MODEL_CAPABILITIES: ProjectionCapabilities = {
   predicates: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within"],
   assertionKinds: ["fact", "precondition", "postcondition", "invariant", "temporal", "security"],
+  requiredRelationships: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within"],
 };
 
 const SUPPORTED_PREDICATES = new Set<string>(EVENT_MODEL_CAPABILITIES.predicates);

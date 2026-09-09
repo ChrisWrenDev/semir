@@ -1,9 +1,9 @@
-export type PredicateCapability = import("./assertion").Predicate;
-export type AssertionKindCapability = import("./assertion").AssertionKind;
+import { Predicate, AssertionKind } from "./assertion.ts";
 
 export interface ProjectionCapabilities {
-  predicates: PredicateCapability[];
-  assertionKinds: AssertionKindCapability[];
+  predicates: Predicate[];
+  assertionKinds: AssertionKind[];
+  requiredRelationships: Predicate[];
 }
 
 export interface ProjectionDiagnostics {
@@ -13,4 +13,14 @@ export interface ProjectionDiagnostics {
   }>;
   warnings: string[];
   coverage: number;
+}
+
+export function unionRelationships(...caps: ProjectionCapabilities[]): Predicate[] {
+  const set = new Set<Predicate>();
+  for (const c of caps) {
+    for (const r of c.requiredRelationships) {
+      set.add(r);
+    }
+  }
+  return [...set];
 }

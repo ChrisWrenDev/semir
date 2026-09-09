@@ -5,7 +5,7 @@
 
 EXTENDS Naturals, FiniteSets, TLC
 
-VARIABLE reservationState
+VARIABLE reservationState, clock
 
 StateType == {
   Paid, \* semantic: sem://reservation/state/paid
@@ -18,16 +18,19 @@ StateType == {
 PayReservation ==
   /\ reservationState \in {Active}
   /\ reservationState' \in {Paid}
+  /\ clock' = clock + 1
   \* semantic: sem://reservation/action/pay-reservation
 
 ExpireReservation ==
   /\ reservationState \in {Active}
   /\ reservationState' \in {Expired}
+  /\ clock' = clock + 1
   \* semantic: sem://reservation/action/expire-reservation
 
 CreateReservation ==
   /\ reservationState \in {StateType}
   /\ reservationState' \in {Active}
+  /\ clock' = clock + 1
   \* semantic: sem://reservation/action/create-reservation
 
 \* Properties derived from SEMIR invariants
@@ -40,7 +43,7 @@ PaidExpiredForbids ==
   [](Paid => ~Expired)
   \* semantic: sem://reservation/assertion/expire-forbidden-when-paid
 
-\* Constraints derived from SEMIR temporal assertions
+\* Temporal constraints derived from SEMIR assertions
 
 ObservedWithin5s ==
   \* Temporal constraint: observable within 5s
@@ -48,6 +51,7 @@ ObservedWithin5s ==
 
 Init ==
   reservationState \in {Paid, Expired, Active}
+  /\ clock = 0
 
 Next ==
   PayReservation
@@ -56,7 +60,7 @@ Next ==
   \/
   CreateReservation
 
-Spec == Init /\ [][Next]_reservationState
+Spec == Init /\ [][Next]_<<reservationState, clock>>
 
 PROPERTY PaidExpiredForbids
      ∧ PaidExpiredForbids

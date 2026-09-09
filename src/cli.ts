@@ -5,9 +5,10 @@ import { join, dirname, basename } from "path";
 import { fromSemirYaml } from "./core/semir-format.ts";
 import { validateModel } from "./core/validation.ts";
 import { slice } from "./core/slice.ts";
-import { projectEventModel } from "./projections/event-model/index.ts";
-import { projectScenarios } from "./projections/scenarios/index.ts";
-import { projectFormal } from "./projections/formal/index.ts";
+import { unionRelationships } from "./core/predicates.ts";
+import { projectEventModel, EVENT_MODEL_CAPABILITIES } from "./projections/event-model/index.ts";
+import { projectScenarios, SCENARIO_CAPABILITIES } from "./projections/scenarios/index.ts";
+import { projectFormal, FORMAL_CAPABILITIES } from "./projections/formal/index.ts";
 import { assertionsAbout } from "./core/query.ts";
 import { isRef, targetId, targetDisplay } from "./core/assertion.ts";
 
@@ -77,9 +78,14 @@ function cmdBuild() {
 
   console.log("\nBuilding projections...\n");
 
+  const relationships = unionRelationships(
+    EVENT_MODEL_CAPABILITIES,
+    SCENARIO_CAPABILITIES,
+    FORMAL_CAPABILITIES,
+  );
   const modelSlice = slice(model, {
     roots: [...model.objects.keys()],
-    relationships: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within", "writes", "exactly_once"],
+    relationships,
   });
 
   const emResult = projectEventModel(modelSlice, modelName);
@@ -139,9 +145,14 @@ function cmdExplain() {
   console.log(`\n\x1b[1m${assertionId}\x1b[0m\n`);
   console.log(`  ${subjectObj?.name ?? assertion!.subject} ${assertion!.predicate} ${objectDisplay}\n`);
 
+  const relationships = unionRelationships(
+    EVENT_MODEL_CAPABILITIES,
+    SCENARIO_CAPABILITIES,
+    FORMAL_CAPABILITIES,
+  );
   const modelSlice = slice(model, {
     roots: [...model.objects.keys()],
-    relationships: ["causes", "transitions_to", "requires", "forbids", "authorized_by", "observable_within", "writes", "exactly_once"],
+    relationships,
   });
 
   console.log("  Used by:\n");

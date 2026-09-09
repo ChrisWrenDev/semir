@@ -1,4 +1,4 @@
-import { FormalIR } from "./ir";
+import { FormalIR } from "./ir.ts";
 
 export function renderTLA(ir: FormalIR): string {
   const lines: string[] = [];
@@ -11,9 +11,16 @@ export function renderTLA(ir: FormalIR): string {
   lines.push("EXTENDS Naturals, FiniteSets, TLC");
   lines.push("");
 
-  if (ir.states.length > 0) {
-    lines.push("VARIABLE reservationState");
+  const variables: string[] = [];
+  if (ir.states.length > 0) variables.push("reservationState");
+  if (ir.hasTemporal) variables.push("clock");
+
+  if (variables.length > 0) {
+    lines.push(`VARIABLE ${variables.join(", ")}`);
     lines.push("");
+  }
+
+  if (ir.states.length > 0) {
     lines.push("StateType == {");
     for (const s of ir.states) {
       lines.push(`  ${s.name}, \\* semantic: ${s.semanticId}`);
@@ -32,6 +39,9 @@ export function renderTLA(ir: FormalIR): string {
       if (action.toStates.length > 0) {
         lines.push(`  /\\ reservationState' \\in {${action.toStates.join(", ")}}`);
       }
+      if (ir.hasTemporal) {
+        lines.push(`  /\\ clock' = clock + 1`);
+      }
       lines.push(`  \\* semantic: ${action.semanticId}`);
       lines.push("");
     }
@@ -49,7 +59,7 @@ export function renderTLA(ir: FormalIR): string {
   }
 
   if (ir.constraints.length > 0) {
-    lines.push("\\* Constraints derived from SEMIR temporal assertions");
+    lines.push("\\* Temporal constraints derived from SEMIR assertions");
     lines.push("");
     for (const c of ir.constraints) {
       lines.push(`${c.name} ==`);
@@ -61,7 +71,14 @@ export function renderTLA(ir: FormalIR): string {
 
   if (ir.actions.length > 0) {
     lines.push("Init ==");
-    lines.push(`  reservationState \\in {${ir.states.map((s) => s.name).join(", ")}}`);
+    const initParts: string[] = [];
+    if (ir.states.length > 0) {
+      initParts.push(`  reservationState \\in {${ir.states.map((s) => s.name).join(", ")}}`);
+    }
+    if (ir.hasTemporal) {
+      initParts.push(`  /\\ clock = 0`);
+    }
+    lines.push(initParts.join("\n"));
     lines.push("");
     lines.push("Next ==");
     lines.push(
@@ -70,8 +87,13 @@ export function renderTLA(ir: FormalIR): string {
     lines.push("");
   }
 
-  if (ir.properties.length > 0) {
+  if (ir.hasTemporal) {
+    lines.push("Spec == Init /\\ [][Next]_<<reservationState, clock>>");
+  } else if (ir.actions.length > 0) {
     lines.push("Spec == Init /\\ [][Next]_reservationState");
+  }
+
+  if (ir.properties.length > 0) {
     lines.push("");
     lines.push("PROPERTY " + ir.properties.map((p) => p.name).join("\n     ∧ "));
   }
