@@ -1,0 +1,106 @@
+version: "0.1"
+
+name: Rate Limiter Domain
+description: Standalone rate limiter model for composition experiment
+
+objects:
+  - id: sem://ratelimit/entity/client
+    kind: entity
+    name: Client
+
+  - id: sem://ratelimit/entity/token-bucket
+    kind: entity
+    name: TokenBucket
+
+  - id: sem://ratelimit/state/bucket-ready
+    kind: state
+    name: BucketReady
+
+  - id: sem://ratelimit/state/bucket-empty
+    kind: state
+    name: BucketEmpty
+
+  - id: sem://ratelimit/action/check-rate-limit
+    kind: action
+    name: CheckRateLimit
+
+  - id: sem://ratelimit/action/refill-tokens
+    kind: action
+    name: RefillTokens
+
+  - id: sem://ratelimit/event/request-allowed
+    kind: event
+    name: RequestAllowed
+
+  - id: sem://ratelimit/event/request-rejected
+    kind: event
+    name: RequestRejected
+
+  - id: sem://ratelimit/event/tokens-refilled
+    kind: event
+    name: TokensRefilled
+
+assertions:
+  - id: sem://ratelimit/assertion/check-requires-ready
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: requires
+    object: sem://ratelimit/state/bucket-ready
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/check-causes-allowed
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: causes
+    object: sem://ratelimit/event/request-allowed
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/allowed-transitions-to-ready
+    subject: sem://ratelimit/event/request-allowed
+    predicate: transitions_to
+    object: sem://ratelimit/state/bucket-ready
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/bucket-empty-forbids-request-allowed
+    subject: sem://ratelimit/state/bucket-empty
+    predicate: forbids
+    object: sem://ratelimit/state/request-allowed
+    kind: invariant
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/check-authorized-by-client
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: authorized_by
+    object: sem://ratelimit/entity/client
+    kind: security
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/refill-causes-refilled
+    subject: sem://ratelimit/action/refill-tokens
+    predicate: causes
+    object: sem://ratelimit/event/tokens-refilled
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/refilled-transitions-to-ready
+    subject: sem://ratelimit/event/tokens-refilled
+    predicate: transitions_to
+    object: sem://ratelimit/state/bucket-ready
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/check-writes-bucket
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: writes
+    object: sem://ratelimit/entity/token-bucket
+    kind: fact
+    epistemicStatus: validated
+    confidence: 1.0

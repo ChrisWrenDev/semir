@@ -1,6 +1,6 @@
 # RFC 0003: Composition Experiment — Reservation × Rate Limiter
 
-**Status:** Proposed  
+**Status:** Complete  
 **Target:** SEMIR compositionality validation  
 **Last updated:** 2026-09-09  
 **Depends on:** RFC 0001, RFC 0002, ADR 0005

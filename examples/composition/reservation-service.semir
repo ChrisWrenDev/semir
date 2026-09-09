@@ -1,0 +1,312 @@
+version: "0.1"
+
+name: Reservation Service
+description: Composition of reservation and rate limiter domains
+
+# ============================================================
+# RESERVATION DOMAIN (independent)
+# ============================================================
+
+objects:
+  - id: sem://reservation/entity/reservation
+    kind: entity
+    name: Reservation
+
+  - id: sem://reservation/actor/owner
+    kind: actor
+    name: ReservationOwner
+
+  - id: sem://reservation/state/active
+    kind: state
+    name: Active
+
+  - id: sem://reservation/state/paid
+    kind: state
+    name: Paid
+
+  - id: sem://reservation/state/expired
+    kind: state
+    name: Expired
+
+  - id: sem://reservation/action/pay-reservation
+    kind: action
+    name: PayReservation
+
+  - id: sem://reservation/action/expire-reservation
+    kind: action
+    name: ExpireReservation
+
+  - id: sem://reservation/event/payment-accepted
+    kind: event
+    name: PaymentAccepted
+
+  - id: sem://reservation/event/reservation-expired
+    kind: event
+    name: ReservationExpired
+
+  # ============================================================
+  # RATE LIMITER DOMAIN (independent)
+  # ============================================================
+
+  - id: sem://ratelimit/entity/client
+    kind: entity
+    name: Client
+
+  - id: sem://ratelimit/entity/token-bucket
+    kind: entity
+    name: TokenBucket
+
+  - id: sem://ratelimit/state/bucket-ready
+    kind: state
+    name: BucketReady
+
+  - id: sem://ratelimit/state/bucket-empty
+    kind: state
+    name: BucketEmpty
+
+  - id: sem://ratelimit/state/request-allowed
+    kind: state
+    name: RequestAllowed
+
+  - id: sem://ratelimit/action/check-rate-limit
+    kind: action
+    name: CheckRateLimit
+
+  - id: sem://ratelimit/action/refill-tokens
+    kind: action
+    name: RefillTokens
+
+  - id: sem://ratelimit/event/request-allowed
+    kind: event
+    name: RequestAllowed
+
+  - id: sem://ratelimit/event/request-rejected
+    kind: event
+    name: RequestRejected
+
+  - id: sem://ratelimit/event/tokens-refilled
+    kind: event
+    name: TokensRefilled
+
+  # ============================================================
+  # COMPOSITION LAYER
+  # ============================================================
+
+  - id: sem://composition/action/pay-with-rate-limit
+    kind: action
+    name: PayWithRateLimit
+
+  - id: sem://composition/event/payment-blocked-by-rate-limit
+    kind: event
+    name: PaymentBlockedByRateLimit
+
+assertions:
+  # === Reservation domain (independent) ===
+
+  - id: sem://reservation/assertion/pay-causes-payment-accepted
+    subject: sem://reservation/action/pay-reservation
+    predicate: causes
+    object: sem://reservation/event/payment-accepted
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/payment-accepted-transitions-to-paid
+    subject: sem://reservation/event/payment-accepted
+    predicate: transitions_to
+    object: sem://reservation/state/paid
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/pay-requires-active
+    subject: sem://reservation/action/pay-reservation
+    predicate: requires
+    object: sem://reservation/state/active
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/pay-authorized-by-owner
+    subject: sem://reservation/action/pay-reservation
+    predicate: authorized_by
+    object: sem://reservation/actor/owner
+    kind: security
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/expire-causes-reservation-expired
+    subject: sem://reservation/action/expire-reservation
+    predicate: causes
+    object: sem://reservation/event/reservation-expired
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/reservation-expired-transitions-to-expired
+    subject: sem://reservation/event/reservation-expired
+    predicate: transitions_to
+    object: sem://reservation/state/expired
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/expire-requires-active
+    subject: sem://reservation/action/expire-reservation
+    predicate: requires
+    object: sem://reservation/state/active
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/paid-reservations-do-not-expire
+    subject: sem://reservation/state/paid
+    predicate: forbids
+    object: sem://reservation/state/expired
+    kind: invariant
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://reservation/assertion/pay-writes-reservation
+    subject: sem://reservation/action/pay-reservation
+    predicate: writes
+    object: sem://reservation/entity/reservation
+    kind: fact
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # === Rate limiter domain (independent) ===
+
+  - id: sem://ratelimit/assertion/check-requires-ready
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: requires
+    object: sem://ratelimit/state/bucket-ready
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/check-causes-allowed
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: causes
+    object: sem://ratelimit/event/request-allowed
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/allowed-transitions-to-ready
+    subject: sem://ratelimit/event/request-allowed
+    predicate: transitions_to
+    object: sem://ratelimit/state/bucket-ready
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/bucket-empty-forbids-request-allowed
+    subject: sem://ratelimit/state/bucket-empty
+    predicate: forbids
+    object: sem://ratelimit/state/request-allowed
+    kind: invariant
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/check-authorized-by-client
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: authorized_by
+    object: sem://ratelimit/entity/client
+    kind: security
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/refill-causes-refilled
+    subject: sem://ratelimit/action/refill-tokens
+    predicate: causes
+    object: sem://ratelimit/event/tokens-refilled
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/refilled-transitions-to-ready
+    subject: sem://ratelimit/event/tokens-refilled
+    predicate: transitions_to
+    object: sem://ratelimit/state/bucket-ready
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://ratelimit/assertion/check-writes-bucket
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: writes
+    object: sem://ratelimit/entity/token-bucket
+    kind: fact
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # ============================================================
+  # CROSS-BOUNDARY ASSERTIONS
+  # ============================================================
+
+  # PayReservation requires rate limit to allow the request
+  - id: sem://composition/assertion/pay-requires-rate-limit-allowed
+    subject: sem://reservation/action/pay-reservation
+    predicate: requires
+    object: sem://ratelimit/state/bucket-ready
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+    evidence:
+      - type: code
+        source: PaymentService.java — rate limit check before payment
+        stance: supports
+
+  # Rate limit rejection blocks payment
+  - id: sem://composition/assertion/rate-limit-rejection-forbids-payment
+    subject: sem://ratelimit/event/request-rejected
+    predicate: forbids
+    object: sem://reservation/event/payment-accepted
+    kind: invariant
+    epistemicStatus: validated
+    confidence: 1.0
+    evidence:
+      - type: test
+        source: RateLimitPaymentIntegrationTest
+        stance: supports
+
+  # PayWithRateLimit is the composed action
+  - id: sem://composition/assertion/pay-with-rate-limit-causes-payment-accepted
+    subject: sem://composition/action/pay-with-rate-limit
+    predicate: requires
+    object: sem://ratelimit/state/bucket-ready
+    kind: precondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  - id: sem://composition/assertion/pay-with-rate-limit-causes-check
+    subject: sem://composition/action/pay-with-rate-limit
+    predicate: causes
+    object: sem://ratelimit/action/check-rate-limit
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # Payment blocked by rate limit
+  - id: sem://composition/assertion/rate-limit-causes-payment-blocked
+    subject: sem://ratelimit/event/request-rejected
+    predicate: causes
+    object: sem://composition/event/payment-blocked-by-rate-limit
+    kind: postcondition
+    epistemicStatus: validated
+    confidence: 1.0
+
+  # Cross-boundary contradiction: reservation says owner auth required,
+  # but composition allows unauthenticated through rate limiter
+  - id: sem://composition/assertion/contradictory-unauth-access
+    subject: sem://ratelimit/action/check-rate-limit
+    predicate: authorized_by
+    object: sem://reservation/actor/owner
+    kind: security
+    epistemicStatus: conflicting
+    confidence: 0.3
+    evidence:
+      - type: documentation
+        source: API gateway docs — no auth check at rate limit layer
+        stance: contradicts
