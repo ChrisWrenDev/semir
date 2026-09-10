@@ -1,0 +1,75 @@
+version: "0.1"
+
+name: Reservation Reference Model
+description: Hidden reference for extraction evaluation
+
+objects:
+  - id: sem://reservation/entity/reservation
+    kind: entity
+    name: Reservation
+  - id: sem://reservation/actor/owner
+    kind: actor
+    name: ReservationOwner
+  - id: sem://reservation/state/active
+    kind: state
+    name: Active
+  - id: sem://reservation/state/paid
+    kind: state
+    name: Paid
+  - id: sem://reservation/state/expired
+    kind: state
+    name: Expired
+  - id: sem://reservation/action/pay-reservation
+    kind: action
+    name: PayReservation
+  - id: sem://reservation/action/expire-reservation
+    kind: action
+    name: ExpireReservation
+  - id: sem://reservation/event/payment-accepted
+    kind: event
+    name: PaymentAccepted
+  - id: sem://reservation/event/reservation-expired
+    kind: event
+    name: ReservationExpired
+
+assertions:
+  - id: sem://reservation/assertion/pay-causes-payment-accepted
+    subject: sem://reservation/action/pay-reservation
+    predicate: causes
+    object: sem://reservation/event/payment-accepted
+    kind: postcondition
+  - id: sem://reservation/assertion/payment-accepted-transitions-to-paid
+    subject: sem://reservation/event/payment-accepted
+    predicate: transitions_to
+    object: sem://reservation/state/paid
+    kind: postcondition
+  - id: sem://reservation/assertion/pay-requires-active
+    subject: sem://reservation/action/pay-reservation
+    predicate: requires
+    object: sem://reservation/state/active
+    kind: precondition
+  - id: sem://reservation/assertion/pay-authorized-by-owner
+    subject: sem://reservation/action/pay-reservation
+    predicate: authorized_by
+    object: sem://reservation/actor/owner
+    kind: security
+  - id: sem://reservation/assertion/paid-reservations-do-not-expire
+    subject: sem://reservation/state/paid
+    predicate: forbids
+    object: sem://reservation/state/expired
+    kind: invariant
+  - id: sem://reservation/assertion/expire-causes-reservation-expired
+    subject: sem://reservation/action/expire-reservation
+    predicate: causes
+    object: sem://reservation/event/reservation-expired
+    kind: postcondition
+  - id: sem://reservation/assertion/reservation-expired-transitions-to-expired
+    subject: sem://reservation/event/reservation-expired
+    predicate: transitions_to
+    object: sem://reservation/state/expired
+    kind: postcondition
+  - id: sem://reservation/assertion/expire-requires-active
+    subject: sem://reservation/action/expire-reservation
+    predicate: requires
+    object: sem://reservation/state/active
+    kind: precondition

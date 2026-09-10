@@ -21,12 +21,14 @@ SEMIR is intended to represent **what an implementation must preserve** rather t
 | [`rfcs/0004-instance-semantics-experiment.md`](rfcs/0004-instance-semantics-experiment.md) | Can SEMIR represent instance identity, bindings, and relational semantics? | Complete |
 | [`rfcs/0005-constraint-calculus.md`](rfcs/0005-constraint-calculus.md) | Minimal relational constraint language for instance semantics | Complete |
 | [`rfcs/0006-conformance-experiment.md`](rfcs/0006-conformance-experiment.md) | Can SEMIR connect meaning to implementation evidence? | Complete |
+| [`rfcs/0007-brownfield-extraction.md`](rfcs/0007-brownfield-extraction.md) | Can SEMIR recover candidate assertions from existing code? | Complete |
 | [`findings/0001-mvp-validation.md`](findings/0001-mvp-validation.md) | What the MVP implementation revealed — evidence, not decisions | Complete |
 | [`findings/0002-second-domain.md`](findings/0002-second-domain.md) | Rate limiter experiment — kernel gaps and specialist extensions | Complete |
 | [`findings/0003-composition.md`](findings/0003-composition.md) | Composition experiment — cross-domain identity, slicing, contradictions | Complete |
 | [`findings/0004-instance-semantics.md`](findings/0004-instance-semantics.md) | Instance semantics — type-level boundary, constraint layer hypothesis | Complete |
 | [`findings/0005-constraint-calculus.md`](findings/0005-constraint-calculus.md) | Constraint calculus — 6 constructs express all instance-level pressure | Complete |
 | [`findings/0006-conformance.md`](findings/0006-conformance.md) | Conformance — evidence-based implementation verification | Complete |
+| [`findings/0007-brownfield-extraction.md`](findings/0007-brownfield-extraction.md) | Extraction — 50% recall, 82% precision, ambiguity preserved | Complete |
 
 ## Recommended reading order
 
