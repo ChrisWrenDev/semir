@@ -65,7 +65,7 @@ The LLM's richer candidate set produces more consolidated assertions, but the to
 | Medium (0.4–0.7) | 17 | hypothesized/inferred |
 | Low (< 0.4) | 0 | — |
 
-The epistemic labels correlate with evidence strength. High-confidence assertions have multiple independent evidence paths (guards + tests + writes). Medium-confidence assertions derive from single-source or ambiguous evidence. No assertions fell below the medium threshold.
+Confidence currently correlates with evidence density; confidence calibration against correctness remains to be measured. High-confidence assertions have multiple independent evidence paths (guards + tests + writes). Medium-confidence assertions derive from single-source or ambiguous evidence. No assertions fell below the medium threshold.
 
 ### Ambiguity preserved
 

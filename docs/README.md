@@ -9,13 +9,13 @@ SEMIR is intended to represent **what an implementation must preserve** rather t
 | Document | Purpose | Status |
 | --- | --- | --- |
 | [`vision.md`](vision.md) | Long-term thesis, principles, scope, and conceptual architecture | Draft |
-| [`rfcs/0001-semir-v0.md`](rfcs/0001-semir-v0.md) | Normative technical design for the SEMIR v0 kernel and projection architecture | Proposed |
 | [`plans/semir-mvp.md`](plans/semir-mvp.md) | Implementation plan for proving the core hypothesis with the reservation/payment example | Proposed |
 | [`adr/0001-assertions-as-semantic-unit.md`](adr/0001-assertions-as-semantic-unit.md) | Why semantic assertions are the fundamental unit of the model | Proposed |
 | [`adr/0002-projection-specific-ir.md`](adr/0002-projection-specific-ir.md) | Why projections lower through projection-specific intermediate representations | Proposed |
 | [`adr/0003-storage-and-serialization-neutrality.md`](adr/0003-storage-and-serialization-neutrality.md) | Why the semantic model is independent of storage and surface syntax | Proposed |
 | [`adr/0005-kernel-vs-extension-boundary.md`](adr/0005-kernel-vs-extension-boundary.md) | Where the kernel ends and specialist extensions begin | Accepted |
 | [`adr/0006-semantic-substrate-complete.md`](adr/0006-semantic-substrate-complete.md) | Semantic substrate architecture — provisionally complete | Accepted |
+| [`rfcs/0001-semir-v0.md`](rfcs/0001-semir-v0.md) | Normative technical design for the SEMIR v0 kernel and projection architecture | Proposed |
 | [`rfcs/0002-second-domain-experiment.md`](rfcs/0002-second-domain-experiment.md) | Adversarial second-domain experiment to test kernel domain-independence | Complete |
 | [`rfcs/0003-composition-experiment.md`](rfcs/0003-composition-experiment.md) | Can independently authored models compose while preserving identity? | Complete |
 | [`rfcs/0004-instance-semantics-experiment.md`](rfcs/0004-instance-semantics-experiment.md) | Can SEMIR represent instance identity, bindings, and relational semantics? | Complete |
@@ -23,6 +23,7 @@ SEMIR is intended to represent **what an implementation must preserve** rather t
 | [`rfcs/0006-conformance-experiment.md`](rfcs/0006-conformance-experiment.md) | Can SEMIR connect meaning to implementation evidence? | Complete |
 | [`rfcs/0007-brownfield-extraction.md`](rfcs/0007-brownfield-extraction.md) | Can SEMIR recover candidate assertions from existing code? | Complete |
 | [`rfcs/0008-llm-interpretation.md`](rfcs/0008-llm-interpretation.md) | Can an LLM infer latent semantics from structured evidence? | Complete |
+| [`rfcs/0009-identity-reconciliation.md`](rfcs/0009-identity-reconciliation.md) | Can inferred semantic concepts be reconciled into stable identities? | Complete |
 | [`findings/0001-mvp-validation.md`](findings/0001-mvp-validation.md) | What the MVP implementation revealed — evidence, not decisions | Complete |
 | [`findings/0002-second-domain.md`](findings/0002-second-domain.md) | Rate limiter experiment — kernel gaps and specialist extensions | Complete |
 | [`findings/0003-composition.md`](findings/0003-composition.md) | Composition experiment — cross-domain identity, slicing, contradictions | Complete |
@@ -31,6 +32,7 @@ SEMIR is intended to represent **what an implementation must preserve** rather t
 | [`findings/0006-conformance.md`](findings/0006-conformance.md) | Conformance — evidence-based implementation verification | Complete |
 | [`findings/0007-brownfield-extraction.md`](findings/0007-brownfield-extraction.md) | Extraction — 50% recall, 82% precision, ambiguity preserved | Complete |
 | [`findings/0008-llm-interpretation.md`](findings/0008-llm-interpretation.md) | LLM interpretation — 100% recall, 93% precision, latent synthesis | Complete |
+| [`findings/0009-identity-reconciliation.md`](findings/0009-identity-reconciliation.md) | Reconciliation — merge precision 100%, false-collapse on shared state names | Complete |
 
 ## Recommended reading order
 
