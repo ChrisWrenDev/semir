@@ -61,6 +61,21 @@ function extractFactsFromFile(filePath: string): ImplementationFact[] {
       });
     }
 
+    // Class method definitions: methodName(
+    const methodMatch = line.match(/^\s*(\w+)\s*\([^)]*\)\s*[:{]/);
+    if (methodMatch && !line.includes("if") && !line.includes("for") && !line.includes("while")) {
+      const name = methodMatch[1];
+      if (!["constructor", "if", "else", "for", "while", "switch", "catch", "return"].includes(name)) {
+        facts.push({
+          kind: "function_call",
+          source: sourceFile,
+          line: lineNum,
+          detail: `method ${name}`,
+          symbols: [name],
+        });
+      }
+    }
+
     // Return values with state
     const returnMatch = line.match(/return\s*\{[^}]*reason:\s*["'](\w+)["']/);
     if (returnMatch) {
