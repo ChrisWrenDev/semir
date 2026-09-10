@@ -26,6 +26,8 @@ SEMIR is intended to represent **what an implementation must preserve** rather t
 | [`rfcs/0009-identity-reconciliation.md`](rfcs/0009-identity-reconciliation.md) | Can inferred semantic concepts be reconciled into stable identities? | Complete |
 | [`rfcs/0010-role-aware-identity.md`](rfcs/0010-role-aware-identity.md) | Can assertion identity be defined over semantic roles, not entity similarity? | Complete |
 | [`findings/0010-role-aware-identity.md`](findings/0010-role-aware-identity.md) | Role-aware reconciliation — 0% false-collapse, deterministic structural matching | Complete |
+| [`rfcs/0011-extracted-vs-intended.md`](rfcs/0011-extracted-vs-intended.md) | Can SEMIR compare extracted and intended models and classify differences? | Complete |
+| [`findings/0011-extracted-vs-intended.md`](findings/0011-extracted-vs-intended.md) | Comparison — 0% false violation rate, evidence-first correspondences | Complete |
 | [`findings/0001-mvp-validation.md`](findings/0001-mvp-validation.md) | What the MVP implementation revealed — evidence, not decisions | Complete |
 | [`findings/0002-second-domain.md`](findings/0002-second-domain.md) | Rate limiter experiment — kernel gaps and specialist extensions | Complete |
 | [`findings/0003-composition.md`](findings/0003-composition.md) | Composition experiment — cross-domain identity, slicing, contradictions | Complete |

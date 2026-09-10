@@ -81,7 +81,7 @@ const PREDICATE_ALIASES: Record<string, string> = {
   "generates": "causes",
 };
 
-function normalizeConcept(name: string): string {
+export function normalizeConcept(name: string): string {
   const lower = name.toLowerCase().replace(/[^a-z0-9]/g, "");
   if (CONCEPT_ALIASES[lower]) return CONCEPT_ALIASES[lower];
 
@@ -92,7 +92,7 @@ function normalizeConcept(name: string): string {
   return name;
 }
 
-function normalizePredicate(pred: string): string {
+export function normalizePredicate(pred: string): string {
   return PREDICATE_ALIASES[pred] ?? pred;
 }
 
@@ -117,7 +117,7 @@ function extractConstraint(c: CandidateAssertion): string | undefined {
   return undefined;
 }
 
-function signatureKey(s: AssertionSignature): string {
+export function signatureKey(s: AssertionSignature): string {
   const parts = [s.subject, s.predicate];
   if (s.object) parts.push(s.object);
   if (s.constraint) parts.push(`constraint:${s.constraint}`);
@@ -125,7 +125,7 @@ function signatureKey(s: AssertionSignature): string {
   return parts.join(":");
 }
 
-function signaturesMatch(a: AssertionSignature, b: AssertionSignature): boolean {
+export function signaturesMatch(a: AssertionSignature, b: AssertionSignature): boolean {
   return signatureKey(a) === signatureKey(b);
 }
 
