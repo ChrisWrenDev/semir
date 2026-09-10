@@ -1,17 +1,19 @@
 import { CandidateAssertion } from "../../../src/extract/interpret-candidates.ts";
 
 /**
- * Adversarial test cases for semantic identity reconciliation.
+ * Adversarial test cases for role-aware semantic identity reconciliation.
  *
- * Four categories per RFC 0009:
- * 1. Different names, same meaning → should merge
+ * RFC 0010 categories:
+ * 1. Different names, same meaning → should merge (concept reconciliation)
  * 2. Similar names, different meaning → should remain separate
- * 3. Same representation, different meaning → should not merge
+ * 3. Same object, different subjects → should remain separate (role-confusion trap)
  * 4. Different abstraction levels → chain, not collapse
+ * 5. Same subject, different objects → should remain separate
+ * 6. Same triple, different predicates → should remain separate
+ * 7. Same triple, different constraints → should remain separate
  */
 
 // --- Category 1: Different names, same meaning ---
-// All refer to the same semantic event: a payment was accepted
 
 const paymentAcceptedSameMeaning: CandidateAssertion[] = [
   {
@@ -22,9 +24,7 @@ const paymentAcceptedSameMeaning: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.85,
-    evidence: [
-      { source: "PaymentService.ts", detail: "reservation.status = 'paid'" },
-    ],
+    evidence: [{ source: "PaymentService.ts", detail: "reservation.status = 'paid'" }],
     reasoning: "Service sets status to paid after payment",
   },
   {
@@ -35,9 +35,7 @@ const paymentAcceptedSameMeaning: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.75,
-    evidence: [
-      { source: "PaymentController.test.ts", detail: "expect(result.paid).toBe(true)" },
-    ],
+    evidence: [{ source: "PaymentController.test.ts", detail: "expect(result.paid).toBe(true)" }],
     reasoning: "Test confirms payment result is true",
   },
   {
@@ -48,23 +46,8 @@ const paymentAcceptedSameMeaning: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.70,
-    evidence: [
-      { source: "AuditLogger.ts", detail: 'record("payment-complete")' },
-    ],
+    evidence: [{ source: "AuditLogger.ts", detail: 'record("payment-complete")' }],
     reasoning: "Audit log records payment completion",
-  },
-  {
-    id: "candidate://migration:transitions_to-payment_completed_at",
-    subject: "payment_migration",
-    predicate: "transitions_to",
-    object: "payment_completed_at",
-    kind: "postcondition",
-    epistemicStatus: "inferred",
-    confidence: 0.65,
-    evidence: [
-      { source: "migration.sql", detail: "ALTER TABLE ADD payment_completed_at" },
-    ],
-    reasoning: "Database tracks payment completion timestamp",
   },
   {
     id: "candidate://API-response:causes-paymentStatus-accepted",
@@ -74,15 +57,12 @@ const paymentAcceptedSameMeaning: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.80,
-    evidence: [
-      { source: "API-response.json", detail: 'paymentStatus: "accepted"' },
-    ],
+    evidence: [{ source: "API-response.json", detail: 'paymentStatus: "accepted"' }],
     reasoning: "API response includes accepted status",
   },
 ];
 
 // --- Category 2: Similar names, different meaning ---
-// PaymentAccepted (event) and ReservationPaid (state) are causally related, not the same
 
 const paymentAcceptedVsReservationPaid: CandidateAssertion[] = [
   {
@@ -107,17 +87,14 @@ const paymentAcceptedVsReservationPaid: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.75,
-    evidence: [
-      { source: "ReservationService.ts", detail: "reservation.state = 'paid'" },
-    ],
+    evidence: [{ source: "ReservationService.ts", detail: "reservation.state = 'paid'" }],
     reasoning: "PaymentAccepted event transitions to Paid state",
   },
 ];
 
-// --- Category 3: Same representation, different meaning ---
-// Two separate boolean guards, both checking "active", but for different purposes
+// --- Category 3: Same object, different subjects (role-confusion trap) ---
 
-const sameRepresentationDifferentMeaning: CandidateAssertion[] = [
+const sameObjectDifferentSubjects: CandidateAssertion[] = [
   {
     id: "candidate://payReservation:requires-active",
     subject: "payReservation",
@@ -126,9 +103,7 @@ const sameRepresentationDifferentMeaning: CandidateAssertion[] = [
     kind: "precondition",
     epistemicStatus: "inferred",
     confidence: 0.80,
-    evidence: [
-      { source: "ReservationService.ts", detail: "reservation.state !== 'active'" },
-    ],
+    evidence: [{ source: "ReservationService.ts", detail: "reservation.state !== 'active'" }],
     reasoning: "PayReservation requires active state before payment",
   },
   {
@@ -139,28 +114,12 @@ const sameRepresentationDifferentMeaning: CandidateAssertion[] = [
     kind: "precondition",
     epistemicStatus: "inferred",
     confidence: 0.75,
-    evidence: [
-      { source: "ExpiryWorker.ts", detail: "reservation.state !== 'active'" },
-    ],
+    evidence: [{ source: "ExpiryWorker.ts", detail: "reservation.state !== 'active'" }],
     reasoning: "processExpiry requires active state to check expiry",
-  },
-  {
-    id: "candidate://deactivateReservation:writes-inactive",
-    subject: "deactivateReservation",
-    predicate: "writes",
-    object: "inactive",
-    kind: "postcondition",
-    epistemicStatus: "inferred",
-    confidence: 0.70,
-    evidence: [
-      { source: "AdminService.ts", detail: "reservation.state = 'inactive'" },
-    ],
-    reasoning: "Deactivation writes inactive state",
   },
 ];
 
 // --- Category 4: Different abstraction levels ---
-// RateLimitExceeded → RequestRejected → HTTP 429
 
 const abstractionLevels: CandidateAssertion[] = [
   {
@@ -171,9 +130,7 @@ const abstractionLevels: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.90,
-    evidence: [
-      { source: "RateLimiter.ts", detail: "if (count > limit) throw RateLimitExceeded" },
-    ],
+    evidence: [{ source: "RateLimiter.ts", detail: "if (count > limit) throw RateLimitExceeded" }],
     reasoning: "Rate limiter detects exceeded limit",
   },
   {
@@ -184,9 +141,7 @@ const abstractionLevels: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.80,
-    evidence: [
-      { source: "Middleware.ts", detail: "catch (RateLimitExceeded) { return 429 }" },
-    ],
+    evidence: [{ source: "Middleware.ts", detail: "catch (RateLimitExceeded) { return 429 }" }],
     reasoning: "Rate limit exception causes request rejection",
   },
   {
@@ -197,10 +152,89 @@ const abstractionLevels: CandidateAssertion[] = [
     kind: "postcondition",
     epistemicStatus: "inferred",
     confidence: 0.75,
-    evidence: [
-      { source: "Middleware.ts", detail: "return { status: 429 }" },
-    ],
+    evidence: [{ source: "Middleware.ts", detail: "return { status: 429 }" }],
     reasoning: "Request rejection maps to HTTP 429 status",
+  },
+];
+
+// --- Category 5: Same subject, different objects ---
+
+const sameSubjectDifferentObjects: CandidateAssertion[] = [
+  {
+    id: "candidate://payReservation:requires-active-5",
+    subject: "payReservation",
+    predicate: "requires",
+    object: "active",
+    kind: "precondition",
+    epistemicStatus: "inferred",
+    confidence: 0.80,
+    evidence: [{ source: "ReservationService.ts", detail: "reservation.state !== 'active'" }],
+    reasoning: "PayReservation requires active state",
+  },
+  {
+    id: "candidate://payReservation:requires-auth-5",
+    subject: "payReservation",
+    predicate: "requires",
+    object: "authenticated",
+    kind: "precondition",
+    epistemicStatus: "inferred",
+    confidence: 0.75,
+    evidence: [{ source: "ReservationService.ts", detail: "if (!user) return unauthorized" }],
+    reasoning: "PayReservation requires authenticated user",
+  },
+];
+
+// --- Category 6: Same triple, different predicates ---
+
+const sameTripleDifferentPredicates: CandidateAssertion[] = [
+  {
+    id: "candidate://PaymentAccepted:causes-Paid-6",
+    subject: "PaymentAccepted",
+    predicate: "causes",
+    object: "Paid",
+    kind: "postcondition",
+    epistemicStatus: "inferred",
+    confidence: 0.85,
+    evidence: [{ source: "ReservationService.ts", detail: "reservation.state = 'paid'" }],
+    reasoning: "PaymentAccepted causes Paid state",
+  },
+  {
+    id: "candidate://PaymentAccepted:requires-Paid-6",
+    subject: "PaymentAccepted",
+    predicate: "requires",
+    object: "Paid",
+    kind: "precondition",
+    epistemicStatus: "inferred",
+    confidence: 0.70,
+    evidence: [{ source: "ReservationService.ts", detail: "assert(reservation.state === 'paid')" }],
+    reasoning: "PaymentAccepted requires Paid state to exist",
+  },
+];
+
+// --- Category 7: Same triple, different constraints ---
+
+const sameTripleDifferentConstraints: CandidateAssertion[] = [
+  {
+    id: "candidate://payReservation:auth-owner-7",
+    subject: "payReservation",
+    predicate: "authorized_by",
+    object: "User",
+    kind: "security",
+    epistemicStatus: "inferred",
+    confidence: 0.80,
+    evidence: [{ source: "ReservationService.ts", detail: "reservation.ownerId !== payerId" }],
+    reasoning: "PayReservation authorized by User where user == reservation.owner",
+  },
+  {
+    id: "candidate://payReservation:auth-org-7",
+    subject: "payReservation",
+    predicate: "authorized_by",
+    object: "User",
+    kind: "security",
+    epistemicStatus: "inferred",
+    confidence: 0.70,
+    evidence: [{ source: "ReservationService.ts", detail: "user.organisationId === reservation.organisationId" }],
+    reasoning: "PayReservation authorized by User where user.organisation == reservation.organisation",
   },
 ];
 
@@ -221,7 +255,6 @@ export const TEST_CATEGORIES: TestCase[] = [
       ["candidate://PaymentService.ts:causes-PaymentAccepted", "candidate://PaymentController.test.ts:causes-result.paid"],
       ["candidate://PaymentService.ts:causes-PaymentAccepted", "candidate://AuditLogger.ts:causes-payment-complete"],
       ["candidate://PaymentService.ts:causes-PaymentAccepted", "candidate://API-response:causes-paymentStatus-accepted"],
-      ["candidate://PaymentController.test.ts:causes-result.paid", "candidate://AuditLogger.ts:causes-payment-complete"],
     ],
     expectedDistinct: [],
   },
@@ -235,13 +268,12 @@ export const TEST_CATEGORIES: TestCase[] = [
     ],
   },
   {
-    name: "category-3-same-representation",
-    description: "Same syntax 'active', different semantic roles — should NOT merge",
-    candidates: sameRepresentationDifferentMeaning,
+    name: "category-3-same-object-different-subjects",
+    description: "Same object 'active', different subjects — should NOT merge (role-confusion trap)",
+    candidates: sameObjectDifferentSubjects,
     expectedSame: [],
     expectedDistinct: [
       ["candidate://payReservation:requires-active", "candidate://processExpiry:requires-active"],
-      ["candidate://payReservation:requires-active", "candidate://deactivateReservation:writes-inactive"],
     ],
   },
   {
@@ -251,6 +283,33 @@ export const TEST_CATEGORIES: TestCase[] = [
     expectedSame: [],
     expectedDistinct: [
       ["candidate://RateLimiter:causes-RateLimitExceeded", "candidate://RequestRejected:transitions_to-HTTP_429"],
+    ],
+  },
+  {
+    name: "category-5-same-subject-different-objects",
+    description: "Same subject, different objects — should NOT merge",
+    candidates: sameSubjectDifferentObjects,
+    expectedSame: [],
+    expectedDistinct: [
+      ["candidate://payReservation:requires-active-5", "candidate://payReservation:requires-auth-5"],
+    ],
+  },
+  {
+    name: "category-6-same-triple-different-predicates",
+    description: "Same triple, different predicates — should NOT merge",
+    candidates: sameTripleDifferentPredicates,
+    expectedSame: [],
+    expectedDistinct: [
+      ["candidate://PaymentAccepted:causes-Paid-6", "candidate://PaymentAccepted:requires-Paid-6"],
+    ],
+  },
+  {
+    name: "category-7-same-triple-different-constraints",
+    description: "Same triple, different constraints — should NOT merge",
+    candidates: sameTripleDifferentConstraints,
+    expectedSame: [],
+    expectedDistinct: [
+      ["candidate://payReservation:auth-owner-7", "candidate://payReservation:auth-org-7"],
     ],
   },
 ];

@@ -5,7 +5,7 @@ import { interpretCandidates, CandidateAssertion } from "../../src/extract/inter
 import { buildEvidenceSlice, llmInterpretation, mockLLMInterpretation, LLMCandidate, LLMConfig } from "../../src/extract/llm-interpret.ts";
 import { consolidate } from "../../src/extract/consolidate.ts";
 import {
-  reconcile,
+  reconcileAll,
   applyReconciliations,
   renderReconciled,
   evaluateReconciliation,
@@ -32,10 +32,11 @@ loadEnv(join(process.cwd(), ".env"));
 function renderEvaluation(eval_: ReconciliationEvaluation, label: string): string {
   const lines: string[] = [];
   lines.push(`\n--- ${label} ---\n`);
-  lines.push(`Merge precision:     ${(eval_.mergePrecision * 100).toFixed(0)}%  (${eval_.correctMerges}/${eval_.totalProposals} proposals correct)`);
-  lines.push(`Merge recall:        ${(eval_.mergeRecall * 100).toFixed(0)}%  (${eval_.correctMerges}/${eval_.correctMerges + eval_.missedMerges} expected merges recovered)`);
-  lines.push(`False-collapse rate: ${(eval_.falseCollapseRate * 100).toFixed(0)}%  (${eval_.incorrectMerges} incorrect merges)`);
-  lines.push(`Distinct precision:  ${(eval_.distinctPrecision * 100).toFixed(0)}%`);
+  lines.push(`Merge precision:       ${(eval_.mergePrecision * 100).toFixed(0)}%  (${eval_.correctMerges}/${eval_.totalProposals} proposals correct)`);
+  lines.push(`Merge recall:          ${(eval_.mergeRecall * 100).toFixed(0)}%  (${eval_.correctMerges}/${eval_.correctMerges + eval_.missedMerges} expected merges recovered)`);
+  lines.push(`False-collapse rate:   ${(eval_.falseCollapseRate * 100).toFixed(0)}%  (${eval_.incorrectMerges} incorrect merges)`);
+  lines.push(`Distinct precision:    ${(eval_.distinctPrecision * 100).toFixed(0)}%`);
+  lines.push(`Role-confusion merges: ${eval_.roleConfusionFalseMerges}`);
   return lines.join("\n");
 }
 
@@ -114,18 +115,22 @@ async function runTestCase(
   console.log(`Expected same: ${tc.expectedSame.length} pairs`);
   console.log(`Expected distinct: ${tc.expectedDistinct.length} pairs\n`);
 
-  const proposals = await reconcile(tc.candidates, llmConfig);
+  const result = await reconcileAll(tc.candidates, llmConfig);
 
-  console.log(`Proposals: ${proposals.length}`);
-  for (const p of proposals) {
-    console.log(`  ${p.candidateA} ${p.relationship} ${p.candidateB} (${p.confidence})`);
+  console.log(`Deterministic matches: ${result.matchResult.exactMatches.length} exact, ${result.matchResult.obviousDistinct.length} distinct, ${result.matchResult.ambiguous.length} ambiguous`);
+  console.log(`LLM proposals: ${result.llmProposals.length}`);
+  console.log(`Total proposals: ${result.allProposals.length}`);
+
+  for (const p of result.allProposals) {
+    const src = p.evidence[0]?.startsWith("deterministic") ? "det" : "llm";
+    console.log(`  [${p.relationship}] ${p.candidateA} ↔ ${p.candidateB} (${p.confidence}) [${src}]`);
   }
 
-  const concepts = applyReconciliations(tc.candidates, proposals);
-  console.log(`\nReconciled concepts: ${concepts.length}`);
-  console.log(renderReconciled(concepts));
+  const assertions = applyReconciliations(tc.candidates, result.allProposals);
+  console.log(`\nReconciled assertions: ${assertions.length}`);
+  console.log(renderReconciled(assertions));
 
-  const evaluation = evaluateReconciliation(proposals, tc.expectedSame, tc.expectedDistinct);
+  const evaluation = evaluateReconciliation(result.allProposals, tc.candidates, tc.expectedSame, tc.expectedDistinct);
   console.log(renderEvaluation(evaluation, tc.name));
 
   return evaluation;
@@ -134,7 +139,7 @@ async function runTestCase(
 // Main
 async function main() {
   const extractionDir = process.argv[2] || join(process.cwd(), "examples", "extraction");
-  const mode = process.argv[3] || "all"; // "full", "adversarial", "all"
+  const mode = process.argv[3] || "all";
 
   const llmEndpoint = process.env.LLM_ENDPOINT;
   const llmApiKey = process.env.LLM_API_KEY;
@@ -158,21 +163,24 @@ async function main() {
     const candidates = await runExtractionPipeline(extractionDir, llmConfig);
 
     if (llmConfig) {
-      console.log("=== PASS 5: Identity Reconciliation ===\n");
+      console.log("=== PASS 5: Role-Aware Identity Reconciliation ===\n");
 
-      const proposals = await reconcile(candidates, llmConfig);
-      console.log(`Reconciliation proposals: ${proposals.length}\n`);
+      const result = await reconcileAll(candidates, llmConfig);
 
-      for (const p of proposals) {
-        const obj = p.suggestedAssertion?.object ? ` ${p.suggestedAssertion.object}` : "";
-        const suggested = p.suggestedAssertion
-          ? ` → ${p.suggestedAssertion.subject} ${p.suggestedAssertion.predicate}${obj}`
-          : "";
-        console.log(`  [${p.relationship}] ${p.candidateA} ↔ ${p.candidateB} (${p.confidence})${suggested}`);
+      console.log(`Deterministic: ${result.deterministicProposals.length} proposals`);
+      console.log(`  exact matches: ${result.matchResult.exactMatches.length}`);
+      console.log(`  obvious distinct: ${result.matchResult.obviousDistinct.length}`);
+      console.log(`  ambiguous (sent to LLM): ${result.matchResult.ambiguous.length}`);
+      console.log(`LLM: ${result.llmProposals.length} proposals`);
+      console.log(`Total: ${result.allProposals.length} proposals\n`);
+
+      for (const p of result.allProposals) {
+        const src = p.evidence[0]?.startsWith("deterministic") ? "det" : "llm";
+        console.log(`  [${p.relationship}] ${p.candidateA} ↔ ${p.candidateB} (${p.confidence}) [${src}]`);
       }
 
-      const concepts = applyReconciliations(candidates, proposals);
-      console.log(renderReconciled(concepts));
+      const assertions = applyReconciliations(candidates, result.allProposals);
+      console.log(renderReconciled(assertions));
     }
   }
 
@@ -203,12 +211,14 @@ async function main() {
     const avgMergeRecall = evaluations.reduce((s, e) => s + e.mergeRecall, 0) / evaluations.length;
     const avgFalseCollapse = evaluations.reduce((s, e) => s + e.falseCollapseRate, 0) / evaluations.length;
     const avgDistinctPrecision = evaluations.reduce((s, e) => s + e.distinctPrecision, 0) / evaluations.length;
+    const totalRoleConfusion = evaluations.reduce((s, e) => s + e.roleConfusionFalseMerges, 0);
 
-    console.log(`Categories tested:     ${evaluations.length}`);
-    console.log(`Avg merge precision:   ${(avgMergePrecision * 100).toFixed(0)}%`);
-    console.log(`Avg merge recall:      ${(avgMergeRecall * 100).toFixed(0)}%`);
-    console.log(`Avg false-collapse:    ${(avgFalseCollapse * 100).toFixed(0)}%`);
-    console.log(`Avg distinct precision: ${(avgDistinctPrecision * 100).toFixed(0)}%`);
+    console.log(`Categories tested:       ${evaluations.length}`);
+    console.log(`Avg merge precision:     ${(avgMergePrecision * 100).toFixed(0)}%`);
+    console.log(`Avg merge recall:        ${(avgMergeRecall * 100).toFixed(0)}%`);
+    console.log(`Avg false-collapse:      ${(avgFalseCollapse * 100).toFixed(0)}%`);
+    console.log(`Avg distinct precision:  ${(avgDistinctPrecision * 100).toFixed(0)}%`);
+    console.log(`Role-confusion merges:   ${totalRoleConfusion}`);
   }
 }
 

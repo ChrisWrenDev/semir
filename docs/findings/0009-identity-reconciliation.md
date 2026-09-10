@@ -90,6 +90,8 @@ Both pairs share syntactic structure. Only the second pair should merge.
 
 3. **Evaluation framework refinement.** The current evaluation measures proposal-level accuracy. Concept-level evaluation (after apply) would give a clearer picture of the final model quality.
 
+4. **Three identity levels.** 0009 conflated concept identity ("PaymentAccepted" ≈ "PaymentSucceeded") with assertion identity ("PayReservation requires Active" ≠ "ProcessExpiry requires Active"). These are different equivalence relations. Assertion identity is defined over semantic roles — subject, predicate, object, constraint, scope — not over which entities appear in the assertion. Experiment 0010 separates these.
+
 ## Decision
 
 ### What worked
@@ -108,5 +110,13 @@ Both pairs share syntactic structure. Only the second pair should merge.
 ### What this means
 
 The reconciliation architecture is validated in principle but the LLM needs better structural context to avoid false collapses. The next experiment should focus on **role-aware reconciliation** — giving the LLM the full assertion triple (subject + predicate + object) as the primary identity signal, not just the object concept name.
+
+0009 also revealed that identity exists at three levels, each with different semantics:
+
+1. **Referent identity** — is `PaymentSucceeded` the same concept as `PaymentAccepted`?
+2. **Assertion identity** — is `Paid forbids Expired` the same claim as `PaidState prevents ExpiredState`?
+3. **Evidence identity** — are two observations independent evidence for the same claim, or duplicates?
+
+Each layer has different identity semantics. Evidence identity is about independent observation. Assertion identity is about semantic role structure. Referent identity is about naming. 0009 conflated the first two. Experiment 0010 separates them.
 
 The 4-category adversarial test framework is reusable for measuring progress on this problem.
